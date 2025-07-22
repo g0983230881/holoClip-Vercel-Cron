@@ -1,0 +1,28 @@
+{
+  "name": "holoclipcenter-channel-scraper",
+  "version": "1.0.0",
+  "description": "A Node.js application to scrape YouTube channels for Hololive Chinese translated highlights.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": [
+    "youtube",
+    "hololive",
+    "scraper",
+    "nodejs",
+    "api",
+    "postgresql"
+  ],
+  "author": "Roo",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "googleapis": "^134.0.0",
+    "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

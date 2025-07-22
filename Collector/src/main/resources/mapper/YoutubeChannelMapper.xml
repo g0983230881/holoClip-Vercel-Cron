@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.HoloClip.Collector.mapper.YoutubeChannelMapper">
+
+    <select id="findByChannelId" resultType="com.HoloClip.Collector.model.YoutubeChannel">
+        SELECT * FROM youtube_channels WHERE channel_id = #{channelId}
+    </select>
+
+    <select id="findByIsVerifiedFalse" resultType="com.HoloClip.Collector.model.YoutubeChannel">
+        SELECT * FROM youtube_channels WHERE is_verified = false
+    </select>
+
+    <insert id="insert" parameterType="com.HoloClip.Collector.model.YoutubeChannel">
+        INSERT INTO youtube_channels (channel_id, channel_name, subscriber_count, video_count, thumbnail_url, is_verified, last_updated, created_at)
+        VALUES (#{channelId}, #{channelName}, #{subscriberCount}, #{videoCount}, #{thumbnailUrl}, #{isVerified}, #{lastUpdated}, #{createdAt})
+    </insert>
+
+    <update id="updateVerificationStatus">
+        UPDATE youtube_channels SET is_verified = #{isVerified}, last_updated = NOW() WHERE channel_id = #{channelId}
+    </update>
+
+</mapper>
