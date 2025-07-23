@@ -14,15 +14,14 @@ const config = {
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT || 5432,
+    ssl: true,
   },
   keywords: [
-    'Hololive', 'ホロライブ', '翻譯', '烤肉', '剪輯',
     'Hololive 翻譯', 'Hololive 烤肉', 'Hololive 剪輯',
-    'ホロライブ 翻譯', 'ホロライブ 烤肉', 'ホロライブ 剪輯',
-    '中文翻譯', '中文烤肉', '熟肉'
+    'ホロライブ 翻譯', 'ホロライブ 烤肉', 'ホロライブ 剪輯'
   ],
   search: {
-    maxSearchPages: 5 // Limit the number of pages to search per keyword to control quota
+    maxSearchPages: 2 // Limit the number of pages to search per keyword to control quota
   }
 };
 
