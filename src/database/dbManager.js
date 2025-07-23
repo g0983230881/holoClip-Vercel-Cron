@@ -76,8 +76,68 @@ async function upsertChannelData(channelDataList) {
   }
 }
 
+/**
+ * 從資料庫獲取所有頻道的列表。
+ * @returns {Promise<Array<object>>} 包含所有頻道資料的陣列。
+ */
+async function getAllChannels() {
+  const client = await pool.connect();
+  try {
+    const query = 'SELECT channel_id, channel_name FROM youtube_channels;';
+    const res = await client.query(query);
+    return res.rows;
+  } catch (error) {
+    console.error('Error getting all channels:', error.message);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * 根據提供的 ID 陣列從資料庫中刪除頻道。
+ * @param {string[]} channelIds 要刪除的頻道 ID 陣列。
+ * @returns {Promise<number>} 已刪除的行數。
+ */
+async function deleteChannelsByIds(channelIds) {
+  if (!channelIds || channelIds.length === 0) {
+    console.log('No channel IDs provided for deletion.');
+    return 0;
+  }
+
+  const client = await pool.connect();
+  try {
+    const query = 'DELETE FROM youtube_channels WHERE channel_id = ANY($1::text[]);';
+    const res = await client.query(query, [channelIds]);
+    console.log(`Successfully deleted ${res.rowCount} channel(s).`);
+    return res.rowCount;
+  } catch (error) {
+    console.error('Error deleting channels by IDs:', error.message);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * 根據提供的 ID 從資料庫中刪除單一頻道。
+ * @param {string} channelId 要刪除的頻道 ID。
+ * @returns {Promise<number>} 已刪除的行數 (0 或 1)。
+ */
+async function deleteChannelById(channelId) {
+  if (!channelId) {
+    console.log('No channel ID provided for deletion.');
+    return 0;
+  }
+  // 重用 deleteChannelsByIds 函式來避免重複程式碼
+  return deleteChannelsByIds([channelId]);
+}
+
 module.exports = {
   pool, // Export pool for potential direct use or closing
   createTable,
   upsertChannelData,
+  getAllChannels,
+  deleteChannelsByIds,
+  deleteChannelById,
 };

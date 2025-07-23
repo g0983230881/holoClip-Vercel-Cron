@@ -14,13 +14,19 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({ChannelNotFoundException.class, ChannelAlreadyExistsException.class, YouTubeApiMisconfigurationException.class})
+    @ExceptionHandler(YouTubeApiMisconfigurationException.class)
     public ResponseEntity<Object> handleCustomExceptions(RuntimeException ex, WebRequest request) {
-        HttpStatus status = HttpStatus.BAD_REQUEST;
-        if (ex instanceof ChannelNotFoundException) {
-            status = HttpStatus.NOT_FOUND;
-        }
-        return buildErrorResponse(ex, status, request);
+        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(ChannelAlreadyExistsException.class)
+    public ResponseEntity<String> handleChannelAlreadyExistsException(ChannelAlreadyExistsException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ChannelNotFoundException.class)
+    public ResponseEntity<String> handleChannelNotFoundException(ChannelNotFoundException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

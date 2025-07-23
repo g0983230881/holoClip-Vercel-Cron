@@ -21,4 +21,66 @@
         UPDATE youtube_channels SET is_verified = #{isVerified}, last_updated = NOW() WHERE channel_id = #{channelId}
     </update>
 
+    <select id="findAll" resultType="com.HoloClip.Collector.model.YoutubeChannel">
+        SELECT * FROM youtube_channels
+        <where>
+            <if test="isVerified != null">
+                AND is_verified = #{isVerified}
+            </if>
+            <if test="channelName != null and channelName != ''">
+                AND channel_name LIKE CONCAT('%', #{channelName}, '%')
+            </if>
+        </where>
+        <if test="sortColumn != null and sortColumn != ''">
+            ORDER BY ${sortColumn} ${sortDirection}
+        </if>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countAll" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM youtube_channels
+        <where>
+            <if test="isVerified != null">
+                AND is_verified = #{isVerified}
+            </if>
+            <if test="channelName != null and channelName != ''">
+                AND channel_name LIKE CONCAT('%', #{channelName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <update id="updateChannel" parameterType="com.HoloClip.Collector.model.YoutubeChannel">
+        UPDATE youtube_channels
+        <set>
+            <if test="channelName != null">channel_name = #{channelName},</if>
+            <if test="subscriberCount != null">subscriber_count = #{subscriberCount},</if>
+            <if test="videoCount != null">video_count = #{videoCount},</if>
+            <if test="thumbnailUrl != null">thumbnail_url = #{thumbnailUrl},</if>
+            <if test="isVerified != null">is_verified = #{isVerified},</if>
+            last_updated = NOW()
+        </set>
+        WHERE channel_id = #{channelId}
+    </update>
+
+    <delete id="deleteByChannelId">
+        DELETE FROM youtube_channels WHERE channel_id = #{channelId}
+    </delete>
+
+    <delete id="deleteByChannelIds">
+        DELETE FROM youtube_channels
+        WHERE channel_id IN
+        <foreach item="item" collection="channelIds" open="(" separator="," close="">
+            #{item}
+        </foreach>
+    </delete>
+
+    <update id="updateVerificationStatusForIds">
+        UPDATE youtube_channels
+        SET is_verified = #{isVerified}, last_updated = NOW()
+        WHERE channel_id IN
+        <foreach item="item" collection="channelIds" open="(" separator="," close="">
+            #{item}
+        </foreach>
+    </update>
+
 </mapper>

@@ -10,9 +10,16 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.util.StringUtils;
 
 @RestController
 @RequestMapping("/api/channels")
+@CrossOrigin(origins = "http://localhost:5173")
 public class YoutubeChannelController {
 
     private final YoutubeChannelService youtubeChannelService;
@@ -39,5 +46,59 @@ public class YoutubeChannelController {
     public ResponseEntity<List<YoutubeChannel>> getUnverifiedChannels() {
         List<YoutubeChannel> channels = youtubeChannelService.getUnverifiedChannels();
         return ResponseEntity.ok(channels);
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<YoutubeChannel>> getChannels(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Boolean isVerified,
+            @RequestParam(required = false) String channelName, // Re-add channelName parameter
+            @RequestParam(required = false) String sort) {
+
+        Pageable pageable;
+        if (StringUtils.hasText(sort)) {
+            String[] sortParams = sort.split(",");
+            String sortBy = sortParams[0];
+            Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("desc") ? Direction.DESC : Direction.ASC;
+            pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        } else {
+            pageable = PageRequest.of(page, size, Sort.by(Direction.DESC, "createdAt"));
+        }
+
+        Page<YoutubeChannel> channels = youtubeChannelService.getChannels(isVerified, channelName, pageable);
+        return ResponseEntity.ok(channels);
+    }
+
+    @GetMapping("/{channelId}")
+    public ResponseEntity<YoutubeChannel> getChannelById(@PathVariable String channelId) {
+        YoutubeChannel channel = youtubeChannelService.getChannelById(channelId);
+        return ResponseEntity.ok(channel);
+    }
+
+    @PatchMapping("/{channelId}")
+    public ResponseEntity<YoutubeChannel> updateChannel(@PathVariable String channelId, @RequestBody Map<String, Object> updates) {
+        YoutubeChannel updatedChannel = youtubeChannelService.updateChannel(channelId, updates);
+        return ResponseEntity.ok(updatedChannel);
+    }
+
+    @PatchMapping("/batch-verify")
+    public ResponseEntity<Void> batchUpdateVerificationStatus(@RequestBody Map<String, Object> payload) {
+        List<String> channelIds = (List<String>) payload.get("channelIds");
+        Boolean isVerified = (Boolean) payload.get("isVerified");
+
+        if (channelIds == null || channelIds.isEmpty() || isVerified == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        youtubeChannelService.batchUpdateVerificationStatus(channelIds, isVerified);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteChannels(@RequestBody Map<String, List<String>> payload) {
+        List<String> channelIds = payload.get("channelIds");
+        youtubeChannelService.deleteChannels(channelIds);
+        return ResponseEntity.noContent().build();
     }
 }

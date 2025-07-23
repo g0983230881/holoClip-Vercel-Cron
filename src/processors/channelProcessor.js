@@ -1,3 +1,6 @@
+const { getLatestVideoPublishDate } = require('../api/youtubeClient');
+const { getAllChannels, deleteChannelsByIds, deleteChannelById } = require('../database/dbManager');
+
 /**
  * 從 search.list API 回應中提取頻道 ID。
  * @param {object} searchResponse search.list API 的回應資料。
@@ -61,10 +64,55 @@ function filterChannel(channelData) {
   return keywords.some(keyword => name.includes(keyword));
 }
 
+/**
+ * 清理超過一年沒有發布新影片的不活躍頻道。
+ */
+async function cleanupInactiveChannels() {
+  console.log('Starting cleanup of inactive channels...');
+
+  try {
+    const allChannels = await getAllChannels();
+    console.log(`Found ${allChannels.length} channels in the database.`);
+
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    const channelsToDelete = [];
+
+    for (const channel of allChannels) {
+      const latestVideoDate = await getLatestVideoPublishDate(channel.channel_id);
+
+      if (latestVideoDate === null) {
+        console.log(`Channel ${channel.channel_name} has no videos. Deleting immediately.`);
+        await deleteChannelById(channel.channel_id);
+      } else if (latestVideoDate < oneYearAgo) {
+        console.log(`Channel ${channel.channel_name} (${channel.channel_id}) is inactive since ${latestVideoDate.toISOString()}. Marked for deletion.`);
+        channelsToDelete.push(channel.channel_id);
+      }
+
+      // 為了避免對 YouTube API 造成太大負擔，加入短暫的延遲
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    if (channelsToDelete.length > 0) {
+      console.log(`Found ${channelsToDelete.length} inactive channels to delete.`);
+      const deletedCount = await deleteChannelsByIds(channelsToDelete);
+      console.log(`Successfully deleted ${deletedCount} channels from the database.`);
+    } else {
+      console.log('No inactive channels found to delete.');
+    }
+
+    console.log('Cleanup of inactive channels finished.');
+  } catch (error) {
+    console.error('An error occurred during the cleanup process:', error);
+  }
+}
+
 
 module.exports = {
   extractChannelIds,
   processChannelDetails,
   deduplicateChannelIds,
   filterChannel,
+  cleanupInactiveChannels,
 };
