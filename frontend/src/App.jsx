@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { FloatButton } from 'antd';
 import ChannelList from './pages/ChannelList';
 import ChannelDetailEdit from './pages/ChannelDetailEdit';
 import ChannelNew from './pages/ChannelNew';
@@ -16,6 +17,7 @@ function App() {
         {/* 將根路徑指向 HomePage */}
         <Route path="/" element={<HomePage />} />
       </Routes>
+      <FloatButton.BackTop />
     </div>
   );
 }

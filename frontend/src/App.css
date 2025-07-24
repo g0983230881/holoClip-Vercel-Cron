@@ -1,5 +1,5 @@
 #root {
-  max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
@@ -58,4 +58,11 @@
 /* --- Prevent scroll chaining on Ant Design Select dropdown --- */
 .ant-select-dropdown {
   overscroll-behavior: contain;
+}
+
+
+/* --- BackTop Button Style --- */
+.ant-float-btn {
+  opacity: 0.7;
+  z-index: 100;
 }

@@ -80,7 +80,7 @@ const HomePage = () => {
             <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#e5e7eb', padding: '1px 0', borderRadius: '4px' }}>
                 <Title
                     level={2}
-                    style={{ textAlign: 'center', cursor: 'pointer' }}
+                    style={{ textAlign: 'center', cursor: 'pointer', display: 'inline-block' }}
                     onClick={handleReset}
                 >
                     Hololive ClipCenter
@@ -138,7 +138,7 @@ const HomePage = () => {
                         </div>
                     ) : (
                         <List
-                            grid={{ gutter: 16, xs: 1, sm: 2, md: 2, lg: 3, xl: 4, xxl: 4 }}
+                            grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }}
                             dataSource={videos}
                             renderItem={video => (
                                 <List.Item>
