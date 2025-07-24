@@ -20,7 +20,8 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "googleapis": "^134.0.0",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "pg-format": "^1.0.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

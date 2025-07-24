@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 const config = require('../../config');
+const format = require('pg-format');
 
 const pool = new Pool(config.database);
 
@@ -36,39 +37,35 @@ async function createTable() {
  * @param {Array<object>} channelDataList 頻道資料物件陣列。
  */
 async function upsertChannelData(channelDataList) {
-  if (channelDataList.length === 0) {
+  if (!channelDataList || channelDataList.length === 0) {
     return;
   }
 
   const client = await pool.connect();
   try {
-    await client.query('BEGIN'); // 開始事務
+    const values = channelDataList.map(c => [
+      c.channel_id,
+      c.channel_name,
+      c.subscriber_count,
+      c.video_count,
+      c.thumbnail_url,
+    ]);
 
-    for (const data of channelDataList) {
-      const query = `
-        INSERT INTO youtube_channels (channel_id, channel_name, subscriber_count, video_count, thumbnail_url)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (channel_id) DO UPDATE SET
-          channel_name = EXCLUDED.channel_name,
-          subscriber_count = EXCLUDED.subscriber_count,
-          video_count = EXCLUDED.video_count,
-          thumbnail_url = EXCLUDED.thumbnail_url,
-          last_updated = NOW();
-      `;
-      const values = [
-        data.channel_id,
-        data.channel_name,
-        data.subscriber_count,
-        data.video_count,
-        data.thumbnail_url,
-      ];
-      await client.query(query, values);
-    }
+    const query = format(
+      `INSERT INTO youtube_channels (channel_id, channel_name, subscriber_count, video_count, thumbnail_url)
+       VALUES %L
+       ON CONFLICT (channel_id) DO UPDATE SET
+         channel_name = EXCLUDED.channel_name,
+         subscriber_count = EXCLUDED.subscriber_count,
+         video_count = EXCLUDED.video_count,
+         thumbnail_url = EXCLUDED.thumbnail_url,
+         last_updated = NOW();`,
+      values
+    );
 
-    await client.query('COMMIT'); // 提交事務
+    await client.query(query);
     console.log(`Successfully upserted ${channelDataList.length} channel(s).`);
   } catch (error) {
-    await client.query('ROLLBACK'); // 回滾事務
     console.error('Error during upserting channel data:', error.message);
     throw error;
   } finally {
@@ -133,6 +130,75 @@ async function deleteChannelById(channelId) {
   return deleteChannelsByIds([channelId]);
 }
 
+/**
+ * 建立 channel_videos 資料表 (如果不存在)。
+ */
+async function createVideosTable() {
+  const client = await pool.connect();
+  try {
+    const query = `
+      CREATE TABLE IF NOT EXISTS channel_videos (
+        video_id VARCHAR PRIMARY KEY,
+        channel_id VARCHAR,
+        title VARCHAR NOT NULL,
+        description TEXT,
+        published_at TIMESTAMP WITH TIME ZONE,
+        thumbnail_url VARCHAR,
+        FOREIGN KEY (channel_id) REFERENCES youtube_channels(channel_id) ON DELETE CASCADE
+      );
+    `;
+    await client.query(query);
+    console.log('Table channel_videos ensured to exist.');
+  } catch (error) {
+    console.error('Error creating channel_videos table:', error.message);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * 批量插入或更新影片資料 (UPSERT)。
+ * @param {Array<object>} videoDataList 影片資料物件陣列。
+ */
+async function upsertVideos(videoDataList) {
+  if (!videoDataList || videoDataList.length === 0) {
+    return;
+  }
+
+  const client = await pool.connect();
+  try {
+    const values = videoDataList.map(v => [
+      v.video_id,
+      v.channel_id,
+      v.title,
+      v.description,
+      v.published_at,
+      v.thumbnail_url,
+    ]);
+
+    const query = format(
+      `INSERT INTO channel_videos (video_id, channel_id, title, description, published_at, thumbnail_url)
+       VALUES %L
+       ON CONFLICT (video_id) DO UPDATE SET
+         channel_id = EXCLUDED.channel_id,
+         title = EXCLUDED.title,
+         description = EXCLUDED.description,
+         published_at = EXCLUDED.published_at,
+         thumbnail_url = EXCLUDED.thumbnail_url;`,
+      values
+    );
+
+    await client.query(query);
+    console.log(`Successfully upserted ${videoDataList.length} video(s).`);
+  } catch (error) {
+    console.error('Error during upserting video data:', error.message);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   pool, // Export pool for potential direct use or closing
   createTable,
@@ -140,4 +206,6 @@ module.exports = {
   getAllChannels,
   deleteChannelsByIds,
   deleteChannelById,
+  createVideosTable,
+  upsertVideos,
 };
