@@ -3,6 +3,7 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  overscroll-behavior: contain;
 }
 
 .logo {
@@ -39,4 +40,22 @@
 
 .read-the-docs {
   color: #888;
+}
+
+
+/* --- Card Hover Animation --- */
+.ant-card {
+  transition: transform 0.3s ease-in-out, z-index 0.3s ease-in-out;
+  position: relative; /* Add this to make z-index work */
+}
+
+.ant-card:hover {
+  transform: translateY(-5px);
+  z-index: 20; /* Higher than sticky header's z-index (10) */
+}
+
+
+/* --- Prevent scroll chaining on Ant Design Select dropdown --- */
+.ant-select-dropdown {
+  overscroll-behavior: contain;
 }

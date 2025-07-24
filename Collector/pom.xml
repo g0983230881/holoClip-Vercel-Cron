@@ -45,10 +45,11 @@
 			<version>3.0.4</version>
 		</dependency>
 
-		<!-- Spring Data JPA for Pageable and Sort -->
+		<!-- PageHelper for MyBatis Pagination -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
+			<groupId>com.github.pagehelper</groupId>
+			<artifactId>pagehelper-spring-boot-starter</artifactId>
+			<version>2.1.0</version>
 		</dependency>
 
 		<!-- YouTube Data API Client Library for Java -->

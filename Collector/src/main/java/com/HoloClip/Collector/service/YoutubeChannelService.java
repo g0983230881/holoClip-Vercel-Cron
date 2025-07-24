@@ -11,10 +11,8 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 
 @Service
 public class YoutubeChannelService {
@@ -68,28 +66,12 @@ public class YoutubeChannelService {
         return youtubeChannelMapper.findByIsVerifiedFalse();
     }
 
-    public Page<YoutubeChannel> getChannels(Boolean isVerified, String channelName, Pageable pageable) {
-        String sortColumn = "created_at";
-        String sortDirection = "DESC";
-
-        if (pageable.getSort().isSorted()) {
-            Sort.Order order = pageable.getSort().stream().findFirst().orElse(null);
-            if (order != null) {
-                sortColumn = convertSortPropertyToColumn(order.getProperty());
-                sortDirection = order.getDirection().name();
-            }
-        }
-
-        List<YoutubeChannel> channels = youtubeChannelMapper.findAll(
-                isVerified,
-                channelName,
-                sortColumn,
-                sortDirection,
-                pageable.getPageSize(),
-                (int) pageable.getOffset()
-        );
-        Long total = youtubeChannelMapper.countAll(isVerified, channelName);
-        return new PageImpl<>(channels, pageable, total);
+    public Page<YoutubeChannel> getChannels(Boolean isVerified, String channelName, int page, int size, String sortColumn, String sortDirection) {
+        sortColumn = convertSortPropertyToColumn(sortColumn);
+        String orderBy = sortColumn + " " + (sortDirection.equalsIgnoreCase("DESC") ? "DESC" : "ASC");
+        
+        PageHelper.startPage(page, size, orderBy);
+        return (Page<YoutubeChannel>) youtubeChannelMapper.findAll(isVerified, channelName);
     }
 
     public YoutubeChannel getChannelById(String channelId) {

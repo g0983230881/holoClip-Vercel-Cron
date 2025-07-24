@@ -1,5 +1,6 @@
 package com.HoloClip.Collector.controller;
 
+import com.HoloClip.Collector.model.PageResponse;
 import com.HoloClip.Collector.model.YoutubeChannel;
 import com.HoloClip.Collector.service.YoutubeChannelService;
 import jakarta.validation.Valid;
@@ -10,11 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
+import com.github.pagehelper.Page;
 import org.springframework.util.StringUtils;
 
 @RestController
@@ -49,25 +46,26 @@ public class YoutubeChannelController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<YoutubeChannel>> getChannels(
-            @RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<PageResponse<YoutubeChannel>> getChannels(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Boolean isVerified,
-            @RequestParam(required = false) String channelName, // Re-add channelName parameter
-            @RequestParam(required = false) String sort) {
+            @RequestParam(required = false) String channelName,
+            @RequestParam(defaultValue = "createdAt,desc") String sort) {
 
-        Pageable pageable;
+        String sortColumn = "created_at";
+        String sortDirection = "DESC";
+
         if (StringUtils.hasText(sort)) {
             String[] sortParams = sort.split(",");
-            String sortBy = sortParams[0];
-            Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("desc") ? Direction.DESC : Direction.ASC;
-            pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        } else {
-            pageable = PageRequest.of(page, size, Sort.by(Direction.DESC, "createdAt"));
+            sortColumn = sortParams[0];
+            if (sortParams.length > 1) {
+                sortDirection = sortParams[1];
+            }
         }
 
-        Page<YoutubeChannel> channels = youtubeChannelService.getChannels(isVerified, channelName, pageable);
-        return ResponseEntity.ok(channels);
+        Page<YoutubeChannel> channels = youtubeChannelService.getChannels(isVerified, channelName, page, size, sortColumn, sortDirection);
+        return ResponseEntity.ok(new PageResponse<>(channels));
     }
 
     @GetMapping("/{channelId}")
@@ -82,6 +80,7 @@ public class YoutubeChannelController {
         return ResponseEntity.ok(updatedChannel);
     }
 
+    @SuppressWarnings("unchecked")
     @PatchMapping("/batch-verify")
     public ResponseEntity<Void> batchUpdateVerificationStatus(@RequestBody Map<String, Object> payload) {
         List<String> channelIds = (List<String>) payload.get("channelIds");

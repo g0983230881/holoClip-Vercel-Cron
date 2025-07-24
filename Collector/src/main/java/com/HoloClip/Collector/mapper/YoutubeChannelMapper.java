@@ -19,14 +19,7 @@ public interface YoutubeChannelMapper {
     void updateVerificationStatus(@Param("channelId") String channelId, @Param("isVerified") boolean isVerified);
 
     List<YoutubeChannel> findAll(@Param("isVerified") Boolean isVerified,
-                                 @Param("channelName") String channelName, // Re-add channelName
-                                 @Param("sortColumn") String sortColumn,
-                                 @Param("sortDirection") String sortDirection,
-                                 @Param("limit") int limit,
-                                 @Param("offset") int offset);
-
-    Long countAll(@Param("isVerified") Boolean isVerified,
-                  @Param("channelName") String channelName); // Re-add channelName
+                                 @Param("channelName") String channelName);
 
     void updateChannel(YoutubeChannel channel);
 

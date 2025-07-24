@@ -28,23 +28,7 @@
                 AND is_verified = #{isVerified}
             </if>
             <if test="channelName != null and channelName != ''">
-                AND channel_name LIKE CONCAT('%', #{channelName}, '%')
-            </if>
-        </where>
-        <if test="sortColumn != null and sortColumn != ''">
-            ORDER BY ${sortColumn} ${sortDirection}
-        </if>
-        LIMIT #{limit} OFFSET #{offset}
-    </select>
-
-    <select id="countAll" resultType="java.lang.Long">
-        SELECT COUNT(*) FROM youtube_channels
-        <where>
-            <if test="isVerified != null">
-                AND is_verified = #{isVerified}
-            </if>
-            <if test="channelName != null and channelName != ''">
-                AND channel_name LIKE CONCAT('%', #{channelName}, '%')
+                AND channel_name ILIKE CONCAT('%', #{channelName}, '%')
             </if>
         </where>
     </select>

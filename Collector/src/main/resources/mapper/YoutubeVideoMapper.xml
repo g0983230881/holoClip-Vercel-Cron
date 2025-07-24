@@ -1,0 +1,26 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.HoloClip.Collector.mapper.YoutubeVideoMapper">
+
+    <select id="findVideosByCriteria" resultType="com.HoloClip.Collector.model.YoutubeVideo">
+        SELECT
+            v.video_id, v.channel_id, v.title, v.thumbnail_url, v.published_at,
+            c.channel_name AS channel_title, c.thumbnail_url AS channel_thumbnail_url
+        FROM
+            channel_videos v
+        JOIN
+            youtube_channels c ON v.channel_id = c.channel_id
+        <where>
+            <if test="search != null and search != ''">
+                AND v.title ILIKE '%' || #{search} || '%'
+            </if>
+            <if test="channelId != null and channelId != ''">
+                AND v.channel_id = #{channelId}
+            </if>
+            AND (v.title NOT ILIKE '%#shorts%' AND v.description NOT ILIKE '%#shorts%')
+        </where>
+        <!-- ORDER BY is now handled by PageHelper in the service layer -->
+    </select>
+
+</mapper>
