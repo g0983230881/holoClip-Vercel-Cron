@@ -16,7 +16,7 @@ const VideoCard = ({ video, hideChannelInfo }) => {
   return (
     <Card
       hoverable
-      cover={<img alt={video.title} src={video.thumbnailUrl} style={{ width: '100%', height: '180px', objectFit: 'cover' }} />}
+      cover={<img alt={video.title} src={video.thumbnailUrl} style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover' }} />}
       onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
       styles={{ body: { padding: '12px', display: 'flex', flexDirection: 'column', height: '100%' } }}
     >

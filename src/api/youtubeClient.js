@@ -77,49 +77,6 @@ function getCurrentQuotaUsage() {
   return currentQuotaUsage;
 }
 
-/**
- * 獲取指定 YouTube 頻道最新一支影片的發布日期。
- * @param {string} channelId 頻道的 ID。
- * @returns {Promise<Date|null>} 最新影片的發布日期，如果找不到或發生錯誤則回傳 null。
- */
-async function getLatestVideoPublishDate(channelId) {
-  try {
-    // 步驟 1: 獲取頻道的上傳播放清單 ID
-    const channelResponse = await youtube.channels.list({
-      part: 'contentDetails',
-      id: channelId,
-    });
-
-    const uploadsPlaylistId = channelResponse.data.items[0]?.contentDetails?.relatedPlaylists?.uploads;
-
-    if (!uploadsPlaylistId) {
-      console.error(`Could not find uploads playlist for channel ${channelId}`);
-      return null;
-    }
-
-    // 步驟 2: 從上傳播放清單中獲取最新的影片
-    const playlistResponse = await youtube.playlistItems.list({
-      part: 'snippet',
-      playlistId: uploadsPlaylistId,
-      maxResults: 1,
-    });
-
-    const latestVideo = playlistResponse.data.items[0];
-
-    if (!latestVideo) {
-      console.log(`Channel ${channelId} has no videos.`);
-      return null;
-    }
-
-    // 步驟 3: 解析並回傳發布日期
-    const publishDate = new Date(latestVideo.snippet.publishedAt);
-    return publishDate;
-
-  } catch (error) {
-    console.error(`Error fetching latest video date for channel ${channelId}:`, error.message);
-    return null;
-  }
-}
 
 /**
  * 根據播放清單 ID 獲取影片列表。
@@ -146,6 +103,5 @@ async function getVideosByPlaylistId(playlistId, pageToken = null) {
 module.exports = {
   searchChannels,
   getChannelDetails,
-  getLatestVideoPublishDate,
   getVideosByPlaylistId,
 };

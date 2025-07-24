@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { List, Input, Select, Row, Col, Typography, Spin, Pagination, Flex, Avatar } from 'antd';
+import { List, Input, Select, Row, Col, Typography, Spin, Pagination, Flex, Avatar, Button } from 'antd';
+import { BugOutlined } from '@ant-design/icons';
 import { fetchVideosAndChannels } from '../api/videoService';
 import channelService from '../api/channelService';
 import VideoCard from '../components/VideoCard';
@@ -76,27 +77,38 @@ const HomePage = () => {
     };
 
     return (
-        <div style={{ padding: '0 20px 20px' }}>
-            <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#e5e7eb', padding: '1px 0', borderRadius: '4px' }}>
+        <div>
+            <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#e5e7eb', padding: '1px 0'}}>
                 <Title
                     level={2}
                     style={{ textAlign: 'center', cursor: 'pointer', display: 'inline-block' }}
                     onClick={handleReset}
                 >
-                    Hololive ClipCenter
+                    Hololive 中文精華蒐集網
                 </Title>
-                <Row gutter={[0, 16]} style={{ marginBottom: 24, justifyContent: 'center', alignItems: 'center' }}>
-                    <Col>
+                <Row gutter={[16, 16]} style={{ marginBottom: 24, justifyContent: 'center', alignItems: 'center' }}>
+                    <Col xs={24} md={6}>
+                        <Button
+                            type="link"
+                            icon={<BugOutlined />}
+                            href="https://forms.gle/QLY76i8PXY8DJZzT8"
+                            target="_blank"
+                            style={{ width: '100%' }}
+                        >
+                            回報問題/新增烤肉man頻道
+                        </Button>
+                    </Col>
+                    <Col xs={24} md={6}>
                         <Search
                             placeholder="搜尋影片標題..."
                             value={searchTerm}
                             onSearch={value => setSearchTerm(value)}
                             onChange={e => setSearchTerm(e.target.value)}
-                            style={{ width: 200 }}
+                            style={{ width: '100%' }}
                             allowClear
                         />
                     </Col>
-                    <Col>
+                    <Col xs={24} md={6}>
                         <Select
                             placeholder="選擇頻道"
                             onChange={value => {
@@ -104,7 +116,7 @@ const HomePage = () => {
                                 setSelectedChannel(channel);
                             }}
                             value={selectedChannel?.channelId}
-                            style={{ width: 200 }}
+                            style={{ width: '100%' }}
                             allowClear
                             getPopupContainer={triggerNode => triggerNode.parentNode}
                         >
@@ -116,10 +128,10 @@ const HomePage = () => {
                         </Select>
                     </Col>
                     {selectedChannel && (
-                        <Col>
-                            <Flex align="center">
-                                <Avatar src={selectedChannel.thumbnailUrl} style={{ marginLeft: 8 }} />
-                                <Typography.Text style={{ marginLeft: 8 }}>{selectedChannel.channelName}</Typography.Text>
+                        <Col xs={24} md={6}>
+                            <Flex align="center" justify="center">
+                                <Avatar src={selectedChannel.thumbnailUrl} style={{ marginRight: 8 }} />
+                                <Typography.Text>{selectedChannel.channelName}</Typography.Text>
                             </Flex>
                         </Col>
                     )}
