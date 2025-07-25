@@ -26,8 +26,8 @@ async function query(text, params) {
 /**
  * 建立 youtube_channels 資料表 (如果不存在)。
  */
-async function createTable() {
-  const queryText = `
+async function createTables() {
+  const createChannelsTableQuery = `
     CREATE TABLE IF NOT EXISTS youtube_channels (
       channel_id VARCHAR PRIMARY KEY,
       channel_name VARCHAR NOT NULL,
@@ -35,15 +35,48 @@ async function createTable() {
       video_count BIGINT,
       thumbnail_url VARCHAR,
       is_verified BOOLEAN DEFAULT FALSE,
+      videos_playlist_id VARCHAR(255),
+      shorts_playlist_id VARCHAR(255),
       last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
   `;
+
+  const createVideosTableQuery = `
+    CREATE TABLE IF NOT EXISTS youtube_videos (
+      video_id VARCHAR PRIMARY KEY,
+      channel_id VARCHAR,
+      title VARCHAR NOT NULL,
+      description TEXT,
+      published_at TIMESTAMP WITH TIME ZONE,
+      thumbnail_url VARCHAR,
+      FOREIGN KEY (channel_id) REFERENCES youtube_channels(channel_id) ON DELETE CASCADE
+   );
+   CREATE INDEX IF NOT EXISTS idx_youtube_videos_channel_id ON youtube_videos(channel_id);
+  `;
+
+  const createShortsTableQuery = `
+    CREATE TABLE IF NOT EXISTS youtube_shorts (
+      video_id VARCHAR PRIMARY KEY,
+      channel_id VARCHAR,
+      title VARCHAR NOT NULL,
+      description TEXT,
+      published_at TIMESTAMP WITH TIME ZONE,
+      thumbnail_url VARCHAR,
+      FOREIGN KEY (channel_id) REFERENCES youtube_channels(channel_id) ON DELETE CASCADE
+   );
+   CREATE INDEX IF NOT EXISTS idx_youtube_shorts_channel_id ON youtube_shorts(channel_id);
+  `;
+
   try {
-    await query(queryText);
+    await query(createChannelsTableQuery);
     console.log('Table youtube_channels ensured to exist.');
+    await query(createVideosTableQuery);
+    console.log('Table youtube_videos ensured to exist.');
+    await query(createShortsTableQuery);
+    console.log('Table youtube_shorts ensured to exist.');
   } catch (error) {
-    console.error('Error creating table:', error.message);
+    console.error('Error creating tables:', error.message);
     throw error;
   }
 }
@@ -63,16 +96,20 @@ async function upsertChannelData(channelDataList) {
     c.subscriber_count,
     c.video_count,
     c.thumbnail_url,
+    c.videos_playlist_id,
+    c.shorts_playlist_id,
   ]);
 
   const queryText = format(
-    `INSERT INTO youtube_channels (channel_id, channel_name, subscriber_count, video_count, thumbnail_url)
+    `INSERT INTO youtube_channels (channel_id, channel_name, subscriber_count, video_count, thumbnail_url, videos_playlist_id, shorts_playlist_id)
      VALUES %L
      ON CONFLICT (channel_id) DO UPDATE SET
        channel_name = EXCLUDED.channel_name,
        subscriber_count = EXCLUDED.subscriber_count,
        video_count = EXCLUDED.video_count,
        thumbnail_url = EXCLUDED.thumbnail_url,
+       videos_playlist_id = EXCLUDED.videos_playlist_id,
+       shorts_playlist_id = EXCLUDED.shorts_playlist_id,
        last_updated = NOW();`,
     values
   );
@@ -91,7 +128,7 @@ async function upsertChannelData(channelDataList) {
  * @returns {Promise<Array<object>>} 包含所有頻道資料的陣列。
  */
 async function getAllChannels() {
-  const queryText = 'SELECT channel_id, channel_name FROM youtube_channels;';
+  const queryText = 'SELECT * FROM youtube_channels;';
   try {
     const res = await query(queryText);
     return res.rows;
@@ -137,30 +174,6 @@ async function deleteChannelById(channelId) {
 }
 
 /**
- * 建立 channel_videos 資料表 (如果不存在)。
- */
-async function createVideosTable() {
-  const queryText = `
-    CREATE TABLE IF NOT EXISTS channel_videos (
-      video_id VARCHAR PRIMARY KEY,
-      channel_id VARCHAR,
-      title VARCHAR NOT NULL,
-      description TEXT,
-      published_at TIMESTAMP WITH TIME ZONE,
-      thumbnail_url VARCHAR,
-      FOREIGN KEY (channel_id) REFERENCES youtube_channels(channel_id) ON DELETE CASCADE
-    );
-  `;
-  try {
-    await query(queryText);
-    console.log('Table channel_videos ensured to exist.');
-  } catch (error) {
-    console.error('Error creating channel_videos table:', error.message);
-    throw error;
-  }
-}
-
-/**
  * 批量插入或更新影片資料 (UPSERT)。
  * @param {Array<object>} videoDataList 影片資料物件陣列。
  */
@@ -179,7 +192,7 @@ async function upsertVideos(videoDataList) {
   ]);
 
   const queryText = format(
-    `INSERT INTO channel_videos (video_id, channel_id, title, description, published_at, thumbnail_url)
+    `INSERT INTO youtube_videos (video_id, channel_id, title, description, published_at, thumbnail_url)
      VALUES %L
      ON CONFLICT (video_id) DO UPDATE SET
        channel_id = EXCLUDED.channel_id,
@@ -199,13 +212,83 @@ async function upsertVideos(videoDataList) {
   }
 }
 
+/**
+ * 批量插入或更新 Shorts 資料 (UPSERT)。
+ * @param {Array<object>} shortsDataList Shorts 資料物件陣列。
+ */
+async function upsertShorts(shortsDataList) {
+  if (!shortsDataList || shortsDataList.length === 0) {
+    return;
+  }
+
+  const values = shortsDataList.map(s => [
+    s.video_id,
+    s.channel_id,
+    s.title,
+    s.description,
+    s.published_at,
+    s.thumbnail_url,
+  ]);
+
+  const queryText = format(
+    `INSERT INTO youtube_shorts (video_id, channel_id, title, description, published_at, thumbnail_url)
+     VALUES %L
+     ON CONFLICT (video_id) DO UPDATE SET
+       channel_id = EXCLUDED.channel_id,
+       title = EXCLUDED.title,
+       description = EXCLUDED.description,
+       published_at = EXCLUDED.published_at,
+       thumbnail_url = EXCLUDED.thumbnail_url;`,
+    values
+  );
+
+  try {
+    await query(queryText);
+    console.log(`Successfully upserted ${shortsDataList.length} short(s).`);
+  } catch (error) {
+    console.error('Error during upserting shorts data:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * 檢查指定的 video ID 是否已存在於資料庫中。
+ * @param {Array<string>} videoIds - 要檢查的 YouTube video ID 陣列。
+ * @returns {Promise<Set<string>>} - 一個包含已存在 video ID 的 Set。
+ */
+async function getExistingVideoIds(videoIds) {
+  if (!videoIds || videoIds.length === 0) {
+    return new Set();
+  }
+  const queryText = 'SELECT video_id FROM youtube_videos WHERE video_id = ANY($1::text[])';
+  const { rows } = await query(queryText, [videoIds]);
+  return new Set(rows.map(row => row.video_id));
+}
+
+/**
+ * 檢查指定的 video ID 是否已存在於資料庫中。
+ * @param {Array<string>} videoIds - 要檢查的 YouTube video ID 陣列。
+ * @returns {Promise<Set<string>>} - 一個包含已存在 short ID 的 Set。
+ */
+async function getExistingShortIds(videoIds) {
+  if (!videoIds || videoIds.length === 0) {
+    return new Set();
+  }
+  const queryText = 'SELECT video_id FROM youtube_shorts WHERE video_id = ANY($1::text[])';
+  const { rows } = await query(queryText, [videoIds]);
+  return new Set(rows.map(row => row.video_id));
+}
+
 module.exports = {
   query,
-  createTable,
+  pool, // 導出 pool 以便在 app.js 中關閉
+  createTables,
   upsertChannelData,
   getAllChannels,
   deleteChannelsByIds,
   deleteChannelById,
-  createVideosTable,
   upsertVideos,
+  upsertShorts,
+  getExistingVideoIds,
+  getExistingShortIds,
 };

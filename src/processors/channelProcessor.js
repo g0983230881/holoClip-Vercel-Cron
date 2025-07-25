@@ -29,13 +29,17 @@ function processChannelDetails(channelsResponse) {
     const snippet = item.snippet || {};
     const statistics = item.statistics || {};
     const thumbnails = snippet.thumbnails || {};
+    const channelId = item.id;
+    const channelIdSuffix = channelId.substring(2);
 
     return {
-      channel_id: item.id,
+      channel_id: channelId,
       channel_name: snippet.title || 'Unknown Channel',
       subscriber_count: parseInt(statistics.subscriberCount || 0),
       video_count: parseInt(statistics.videoCount || 0),
       thumbnail_url: thumbnails.high ? thumbnails.high.url : (thumbnails.medium ? thumbnails.medium.url : (thumbnails.default ? thumbnails.default.url : null)),
+      videos_playlist_id: `UULF${channelIdSuffix}`,
+      shorts_playlist_id: `UUSH${channelIdSuffix}`,
     };
   });
 }
@@ -77,22 +81,27 @@ async function cleanupInactiveChannels() {
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-    const channelsToDelete = [];
-
-    for (const channel of allChannels) {
-      const latestVideoDate = await getLatestVideoPublishDate(channel.channel_id);
-
-      if (latestVideoDate === null) {
-        console.log(`Channel ${channel.channel_name} has no videos. Deleting immediately.`);
-        await deleteChannelById(channel.channel_id);
-      } else if (latestVideoDate < oneYearAgo) {
-        console.log(`Channel ${channel.channel_name} (${channel.channel_id}) is inactive since ${latestVideoDate.toISOString()}. Marked for deletion.`);
-        channelsToDelete.push(channel.channel_id);
-      }
-
-      // 為了避免對 YouTube API 造成太大負擔，加入短暫的延遲
+    const checkPromises = allChannels.map(async (channel) => {
+      // 為了避免對 YouTube API 造成太大負擔，在請求之間加入短暫的延遲
       await new Promise(resolve => setTimeout(resolve, 100));
-    }
+      
+      const latestVideoDate = await getLatestVideoPublishDate(channel.channel_id);
+      
+      if (latestVideoDate === null) {
+        console.log(`Channel ${channel.channel_name} has no videos. Marked for deletion.`);
+        return channel.channel_id;
+      }
+      
+      if (latestVideoDate < oneYearAgo) {
+        console.log(`Channel ${channel.channel_name} (${channel.channel_id}) is inactive since ${latestVideoDate.toISOString()}. Marked for deletion.`);
+        return channel.channel_id;
+      }
+      
+      return null;
+    });
+
+    const results = await Promise.all(checkPromises);
+    const channelsToDelete = results.filter(id => id !== null);
 
     if (channelsToDelete.length > 0) {
       console.log(`Found ${channelsToDelete.length} inactive channels to delete.`);
