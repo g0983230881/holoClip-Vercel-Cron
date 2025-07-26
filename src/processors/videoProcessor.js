@@ -1,4 +1,4 @@
-const { getVideosByPlaylistId } = require('../api/youtubeClient');
+const { getVideosByPlaylistId, getVideoDetailsById } = require('../api/youtubeClient');
 const {
   getAllChannels,
   upsertVideos,
@@ -119,6 +119,36 @@ async function fetchAndFilterVideos() {
   console.log('\n所有頻道影片與 Shorts 抓取與篩選任務完成。');
 }
 
+/**
+ * 根據影片 ID 抓取單一影片的詳細資訊。
+ * @param {string} videoId - YouTube 影片 ID。
+ * @returns {Promise<Object|null>} - 格式化後的影片物件，如果找不到則返回 null。
+ */
+async function fetchVideoDetails(videoId) {
+  console.log(`Fetching details for video: ${videoId}`);
+  const video = await getVideoDetailsById(videoId);
+
+  if (!video) {
+    console.log(`Video with ID ${videoId} not found.`);
+    return null;
+  }
+
+  // 根據需要篩選或轉換資料
+  // 這裡我們假設所有來自 webhook 的通知都應該被處理
+  const isShort = video.snippet.description?.toLowerCase().includes('#shorts') || video.snippet.title?.toLowerCase().includes('#shorts');
+
+  return {
+    video_id: video.id,
+    channel_id: video.snippet.channelId,
+    title: video.snippet.title,
+    description: video.snippet.description,
+    published_at: video.snippet.publishedAt,
+    thumbnail_url: video.snippet.thumbnails.high?.url || video.snippet.thumbnails.default?.url,
+    is_short: isShort,
+  };
+}
+
 module.exports = {
   fetchAndFilterVideos,
+  fetchVideoDetails,
 };

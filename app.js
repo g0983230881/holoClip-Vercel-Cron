@@ -1,29 +1,44 @@
+require('dotenv').config();
+const express = require('express');
 const dbManager = require('./src/database/dbManager');
-const channelProcessor = require('./src/processors/channelProcessor');
-const videoProcessor = require('./src/processors/videoProcessor');
+const webhookRouter = require('./src/api/webhook');
 
-async function runFetchAndFilter() {
-  console.log('Starting to fetch and filter videos...');
+const app = express();
+const PORT = process.env.PORT || 3000;
 
+// Middleware for webhook body parsing.
+// We need the raw body buffer for signature verification, and the parsed text for XML processing.
+const verifyPostData = (req, res, buf) => {
+  // Attach the raw buffer to the request object.
+  req.rawBody = buf;
+};
+app.use(express.text({ type: 'application/atom+xml', verify: verifyPostData }));
+
+
+// Middleware to parse JSON bodies for other potential routes
+app.use(express.json());
+
+// Webhook router
+app.use('/api/webhook', webhookRouter);
+
+// Default route
+app.get('/', (req, res) => {
+  res.send('HoloClip Schedule Server is running.');
+});
+
+async function startServer() {
   try {
-    // 1. 確保資料表存在
-    await dbManager.createTable();
-    await dbManager.createVideosTable();
+    // Ensure database tables exist on startup
+    await dbManager.createTables();
+    console.log('Database tables verified/created.');
 
-    // 2. 抓取與篩選影片
-    console.log('Starting video fetching and filtering...');
-    // await channelProcessor.cleanupInactiveChannels();
-    await videoProcessor.fetchAndFilterVideos();
-    console.log('Video fetching and filtering complete.');
-
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
   } catch (error) {
-    console.error('An error occurred during fetching and filtering:', error.message);
-    console.error(error);
-  } finally {
-    // 確保資料庫連接池關閉
-    await dbManager.pool.end();
-    console.log('Database pool closed.');
+    console.error('Failed to start the server:', error);
+    process.exit(1);
   }
 }
 
-runFetchAndFilter();
+startServer();

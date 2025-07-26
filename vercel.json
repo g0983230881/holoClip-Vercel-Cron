@@ -1,8 +1,15 @@
 {
+  "version": 2,
   "crons": [
     {
       "path": "/api/cron/update-videos",
       "schedule": "0 19 * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/app.js"
     }
   ]
 }

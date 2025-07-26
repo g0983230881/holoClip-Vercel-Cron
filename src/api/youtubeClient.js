@@ -100,8 +100,30 @@ async function getVideosByPlaylistId(playlistId, pageToken = null) {
 }
 
 
+/**
+ * 根據影片 ID 獲取單一影片的詳細資訊。
+ * @param {string} videoId - YouTube 影片 ID。
+ * @returns {Promise<object|null>} - API 回應中的影片項目，如果找不到則返回 null。
+ */
+async function getVideoDetailsById(videoId) {
+  try {
+    const response = await youtube.videos.list({
+      part: 'snippet,contentDetails', // contentDetails 可以用來判斷影片長度
+      id: videoId,
+    });
+    if (response.data.items && response.data.items.length > 0) {
+      return response.data.items[0];
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching details for video ${videoId}:`, error.message);
+    return null;
+  }
+}
+
 module.exports = {
   searchChannels,
   getChannelDetails,
   getVideosByPlaylistId,
+  getVideoDetailsById,
 };
