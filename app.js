@@ -2,30 +2,23 @@ console.log('Vercel is attempting to load app.js...'); // <-- Debugging log
 require('dotenv').config();
 const express = require('express');
 const dbManager = require('./src/database/dbManager');
-const webhookRouter = require('./src/api/webhook');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware for webhook body parsing.
-// We need the raw body buffer for signature verification, and the parsed text for XML processing.
-const verifyPostData = (req, res, buf) => {
-  // Attach the raw buffer to the request object.
-  req.rawBody = buf;
-};
-app.use(express.text({ type: 'application/atom+xml', verify: verifyPostData }));
-
-
 // Middleware to parse JSON bodies for other potential routes
 app.use(express.json());
-
-// Webhook router
-app.use('/api/webhook', webhookRouter);
 
 // Default route
 app.get('/', (req, res) => {
   res.send('HoloClip Schedule Server is running.');
 });
+
+// A simple health check route
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 
 async function startServer() {
   try {
@@ -33,9 +26,12 @@ async function startServer() {
     await dbManager.createTables();
     console.log('Database tables verified/created.');
 
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
+    // This part is for local development. On Vercel, it's handled differently.
+    if (process.env.NODE_ENV !== 'production') {
+      app.listen(PORT, () => {
+        console.log(`Legacy server listening on port ${PORT}`);
+      });
+    }
   } catch (error) {
     console.error('Failed to start the server:', error);
     process.exit(1);
@@ -43,3 +39,6 @@ async function startServer() {
 }
 
 startServer();
+
+// Export the app for Vercel
+module.exports = app;
