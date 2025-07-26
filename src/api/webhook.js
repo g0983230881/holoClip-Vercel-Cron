@@ -12,14 +12,20 @@ const HUB_SECRET = process.env.YOUTUBE_HUB_SECRET; // Ensure this is set in your
 
 // GET endpoint for PubSubHubbub subscription verification
 router.get('/', (req, res) => {
+  // --- Start of new detailed logging for debugging ---
+  console.log('GET request received for verification.');
+  console.log('Query parameters received:', JSON.stringify(req.query, null, 2));
+  // --- End of new detailed logging ---
+
   const hubChallenge = req.query['hub.challenge'];
   const hubMode = req.query['hub.mode'];
 
   if (hubMode === 'subscribe' || hubMode === 'unsubscribe') {
-    console.log(`Responding to ${hubMode} challenge.`);
+    console.log(`Responding to ${hubMode} challenge with value: "${hubChallenge}"`);
+    res.set('Content-Type', 'text/plain'); // Explicitly set content type for safety
     res.status(200).send(hubChallenge);
   } else {
-    console.log('GET request received, but not a valid subscription challenge.');
+    console.log('GET request received, but not a valid subscription challenge. Responding with 400.');
     res.status(400).send('Bad Request');
   }
 });

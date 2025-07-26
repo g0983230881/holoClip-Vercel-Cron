@@ -1,7 +1,7 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const axios = require('axios');
-const { getAllChannels } = require('../database/dbManager');
-const { pool } = require('../database/dbManager');
+const { getAllChannels } = require('../src/database/dbManager');
+const { pool } = require('../src/database/dbManager');
 
 const HUB_URL = 'https://pubsubhubbub.appspot.com/';
 
@@ -44,7 +44,7 @@ async function subscribeToAllChannels() {
   const callbackUrl = process.argv[2];
   if (!callbackUrl) {
     console.error('Error: Please provide your public webhook URL as an argument.');
-    console.error('Usage: node scripts/subscribe.js https://your-vercel-app.vercel.app/api/webhook');
+    console.error('Usage: node scripts/subscribe.js https://holo-clip-vercel-cron.vercel.app/api/webhook');
     return;
   }
 
