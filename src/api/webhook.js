@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { Receiver } = require('@upstash/qstash');
 const { parseStringPromise } = require('xml2js');
 const { fetchVideoDetails } = require('../processors/videoProcessor');
 const { upsertVideo, upsertShort } = require('../database/videoManager');
@@ -76,14 +77,36 @@ module.exports = async (req, res) => {
   } else if (req.method === 'POST') {
     console.log('POST request received on webhook.');
     const rawBody = await getRawBody(req);
-    const signature = req.headers['x-hub-signature'];
+    const upstashSignature = req.headers['upstash-signature'];
+    const googleSignature = req.headers['x-hub-signature'];
 
-    if (HUB_SECRET && !verifySignature(signature, rawBody)) {
-      console.error('Signature verification failed.');
+    let isVerified = false;
+    let source = '';
+
+    if (upstashSignature) {
+      source = 'Upstash';
+      const r = new Receiver({
+        currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY,
+        nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY,
+      });
+      isVerified = await r.verify({
+        signature: upstashSignature,
+        body: rawBody.toString(),
+      }).catch(err => {
+        console.error("Upstash signature verification error:", err);
+        return false;
+      });
+    } else if (googleSignature) {
+      source = 'Google';
+      isVerified = verifySignature(googleSignature, rawBody);
+    }
+
+    if (!isVerified) {
+      console.error(`Signature verification failed for source: ${source || 'Unknown'}.`);
       return res.status(403).send('Forbidden: Invalid signature.');
     }
 
-    console.log('Signature verified successfully.');
+    console.log(`Signature verified successfully for source: ${source}.`);
     res.status(204).send(); // Respond immediately
 
     // Process in background

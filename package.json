@@ -18,6 +18,7 @@
   "author": "Roo",
   "license": "MIT",
   "dependencies": {
+    "@upstash/qstash": "^2.8.1",
     "axios": "^1.11.0",
     "dotenv": "^16.4.5",
     "express": "^5.1.0",
