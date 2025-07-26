@@ -1,3 +1,4 @@
+console.log('Vercel is attempting to load app.js...'); // <-- Debugging log
 require('dotenv').config();
 const express = require('express');
 const dbManager = require('./src/database/dbManager');
